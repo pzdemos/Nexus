@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale-1.0" />
+    <title>Nexus</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+  <script type="importmap">
+{
+  "imports": {
+    "react-dom/": "https://aistudiocdn.com/react-dom@^19.2.0/",
+    "react/": "https://aistudiocdn.com/react@^19.2.0/",
+    "react": "https://aistudiocdn.com/react@^19.2.0",
+    "@google/genai": "https://aistudiocdn.com/@google/genai@^1.29.0",
+    "react-markdown": "https://aistudiocdn.com/react-markdown@^9.0.1",
+    "remark-gfm": "https://aistudiocdn.com/remark-gfm@^4.0.0"
+  }
+}
+</script>
+<style>
+  body {
+    font-family: 'Noto Sans SC', sans-serif;
+  }
+  @keyframes rotate-once-ccw {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(-360deg); }
+  }
+  .animate-rotate-once-ccw {
+    animation: rotate-once-ccw 0.5s ease-in-out;
+  }
+  @keyframes loading-orbit-ccw {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(-360deg); }
+  }
+  .animate-loading-orbit-ccw {
+    animation: loading-orbit-ccw 1.5s linear infinite;
+  }
+  .markdown-content { overflow-wrap: break-word; }
+  .markdown-content h1, .markdown-content h2, .markdown-content h3 { font-weight: bold; margin-top: 0.75em; margin-bottom: 0.25em; }
+  .markdown-content h1 { font-size: 1.5em; }
+  .markdown-content h2 { font-size: 1.25em; }
+  .markdown-content h3 { font-size: 1.1em; }
+  .markdown-content p { margin-bottom: 0.5em; }
+  .markdown-content ul, .markdown-content ol { margin-left: 1.5rem; margin-bottom: 0.5em; }
+  .markdown-content ul { list-style-type: disc; }
+  .markdown-content ol { list-style-type: decimal; }
+  .markdown-content li { margin-bottom: 0.25em; }
+  .markdown-content pre { background-color: #1f2937; color: #f9fafb; padding: 1rem; border-radius: 0.5rem; overflow-x: auto; margin-bottom: 0.5em;}
+  .markdown-content code { background-color: #e5e7eb; padding: 0.2em 0.4em; margin: 0; border-radius: 0.25rem; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; font-size: 0.9em; }
+  .markdown-content pre code { background-color: transparent; color: inherit; padding: 0; font-size: inherit; }
+  .markdown-content a { color: #2563eb; text-decoration: underline; }
+  .markdown-content table { border-collapse: collapse; width: 100%; margin-bottom: 1em; }
+  .markdown-content th, .markdown-content td { border: 1px solid #d1d5db; padding: 0.5rem; text-align: left; }
+  .markdown-content th { background-color: #f3f4f6; font-weight: bold; }
+  .markdown-content > *:first-child { margin-top: 0; }
+  .markdown-content > *:last-child { margin-bottom: 0; }
+</style>
+</head>
+  <body class="bg-white text-neutral-800">
+    <div id="root"></div>
+    <script type="module" src="/index.tsx"></script>
+  </body>
+</html>
