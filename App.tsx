@@ -1,5 +1,4 @@
 import React, { useState, useCallback, ChangeEvent, useRef, useEffect, useMemo } from 'react';
-import { GoogleGenAI, Modality } from "@google/genai";
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 
@@ -219,25 +218,34 @@ const App: React.FC = () => {
         
         const lastUserMessage = chatHistory[chatHistory.length - 2];
         const currentPrompt = lastUserMessage.parts.find(p => p.text)?.text || '';
+        
+        // Use a placeholder for the active image to avoid stale closures
+        const imageForApi = activeImage;
 
         try {
-            const ai = new GoogleGenAI({ apiKey: process.env.API_KEY as string });
-            let response;
+            // NOTE: Replace with your deployed backend URL
+            const API_ENDPOINT = 'http://localhost:3001/api/generate';
+
+            const response = await fetch(API_ENDPOINT, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    prompt: currentPrompt,
+                    image: imageForApi ? { base64: imageForApi.base64, mimeType: imageForApi.mimeType } : null,
+                    mode: mode
+                }),
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.error?.message || `HTTP error! status: ${response.status}`);
+            }
+
+            const data = await response.json();
             let modelMessage: ChatMessage;
 
             if (mode === 'image') {
-                const parts: any[] = [];
-                if (activeImage) parts.push({ inlineData: { data: activeImage.base64, mimeType: activeImage.mimeType } });
-                parts.push({ text: currentPrompt });
-                
-                response = await ai.models.generateContent({
-                    model: 'gemini-2.5-flash-image',
-                    contents: { parts: parts },
-                    config: { responseModalities: [Modality.IMAGE] },
-                });
-
-                const firstPart = response?.candidates?.[0]?.content?.parts?.[0];
-
+                const firstPart = data?.candidates?.[0]?.content?.parts?.[0];
                 if (firstPart?.inlineData) {
                     const newImageAsset: ImageAsset = {
                         url: `data:${firstPart.inlineData.mimeType};base64,${firstPart.inlineData.data}`,
@@ -247,18 +255,12 @@ const App: React.FC = () => {
                     modelMessage = { id: crypto.randomUUID(), role: 'model', parts: [{ image: newImageAsset }] };
                     setActiveImage(newImageAsset);
                 } else {
-                    const fallbackText = response.text || "抱歉，我无法根据该提示词生成图片。";
+                    const fallbackText = data.text || "抱歉，我无法根据该提示词生成图片。";
                     setError("无法生成图片。响应可能被阻止或不包含图像数据。");
                     modelMessage = { id: crypto.randomUUID(), role: 'model', parts: [{ text: fallbackText }] };
                 }
             } else {
-                 if (activeImage) {
-                    const parts = [{ text: currentPrompt }, { inlineData: { data: activeImage.base64, mimeType: activeImage.mimeType } }];
-                    response = await ai.models.generateContent({ model: 'gemini-2.5-flash', contents: { parts } });
-                } else {
-                    response = await ai.models.generateContent({ model: 'gemini-2.5-flash', contents: currentPrompt });
-                }
-                modelMessage = { id: crypto.randomUUID(), role: 'model', parts: [{ text: response.text }] };
+                 modelMessage = { id: crypto.randomUUID(), role: 'model', parts: [{ text: data.text }] };
             }
 
             latestMessageId.current = modelMessage.id;
@@ -276,7 +278,7 @@ const App: React.FC = () => {
     
     performApiCall();
 
-  }, [animationState, chatHistory, activeImage, mode]);
+  }, [animationState, chatHistory]);
 
 
   useEffect(() => {
