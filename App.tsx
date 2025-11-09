@@ -1,3 +1,4 @@
+
 import React, { useState, useCallback, ChangeEvent, useRef, useEffect, useMemo } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
@@ -219,50 +220,62 @@ const App: React.FC = () => {
         const lastUserMessage = chatHistory[chatHistory.length - 2];
         const currentPrompt = lastUserMessage.parts.find(p => p.text)?.text || '';
         
-        // Use a placeholder for the active image to avoid stale closures
-        const imageForApi = activeImage;
-
         try {
-            // NOTE: Replace with your deployed backend URL
-            const API_ENDPOINT = 'http://localhost:3001/api/generate';
+            const API_ENDPOINT = 'https://z-gemini.deno.dev/api/nexus-generate';
+
+            const payload = {
+                prompt: currentPrompt,
+                image: activeImage,
+                mode: mode,
+            };
 
             const response = await fetch(API_ENDPOINT, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    prompt: currentPrompt,
-                    image: imageForApi ? { base64: imageForApi.base64, mimeType: imageForApi.mimeType } : null,
-                    mode: mode
-                }),
+                body: JSON.stringify(payload),
             });
 
             if (!response.ok) {
                 const errorData = await response.json();
-                throw new Error(errorData.error?.message || `HTTP error! status: ${response.status}`);
+                throw new Error(errorData.error?.message || errorData.details || `HTTP error! status: ${response.status}`);
             }
 
             const data = await response.json();
-            let modelMessage: ChatMessage;
+            
+            const modelParts: ChatPart[] = [];
+            const candidates = data.candidates;
 
-            if (mode === 'image') {
-                const firstPart = data?.candidates?.[0]?.content?.parts?.[0];
-                if (firstPart?.inlineData) {
-                    const newImageAsset: ImageAsset = {
-                        url: `data:${firstPart.inlineData.mimeType};base64,${firstPart.inlineData.data}`,
-                        base64: firstPart.inlineData.data,
-                        mimeType: firstPart.inlineData.mimeType
-                    };
-                    modelMessage = { id: crypto.randomUUID(), role: 'model', parts: [{ image: newImageAsset }] };
-                    setActiveImage(newImageAsset);
-                } else {
-                    const fallbackText = data.text || "抱歉，我无法根据该提示词生成图片。";
-                    setError("无法生成图片。响应可能被阻止或不包含图像数据。");
-                    modelMessage = { id: crypto.randomUUID(), role: 'model', parts: [{ text: fallbackText }] };
+            if (candidates && candidates.length > 0) {
+                const parts = candidates[0].content.parts;
+                for (const part of parts) {
+                    if (part.text) {
+                        modelParts.push({ text: part.text });
+                    } else if (part.inlineData) {
+                        const imageAsset: ImageAsset = {
+                            url: `data:${part.inlineData.mimeType};base64,${part.inlineData.data}`,
+                            base64: part.inlineData.data,
+                            mimeType: part.inlineData.mimeType,
+                        };
+                        modelParts.push({ image: imageAsset });
+                    }
                 }
-            } else {
-                 modelMessage = { id: crypto.randomUUID(), role: 'model', parts: [{ text: data.text }] };
+            }
+            
+            if (modelParts.length === 0) {
+                 if (data.promptFeedback && data.promptFeedback.blockReason) {
+                    const reason = data.promptFeedback.blockReason.replace(/_/g, ' ').toLowerCase();
+                    modelParts.push({ text: `抱歉，由于 ${reason}，我无法生成回应。` });
+                } else {
+                    modelParts.push({ text: "抱歉，我无法生成回应，请检查您的输入或稍后再试。" });
+                }
             }
 
+            const modelMessage: ChatMessage = { 
+                id: crypto.randomUUID(), 
+                role: 'model', 
+                parts: modelParts 
+            };
+            
             latestMessageId.current = modelMessage.id;
             setChatHistory(prev => prev.map(msg => msg.id === 'loading-placeholder' ? modelMessage : msg));
 
